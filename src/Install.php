@@ -48,7 +48,7 @@ class Install
             copy_dir(__DIR__ . "/$source", base_path()."/$dest");
         }
         // 在composer安装的时候直接生成jwtKey
-        Auth::jwtKey();
+        \Shopwwi\WebmanAuth\Facade\Auth::jwtKey();
     }
 
     /**
