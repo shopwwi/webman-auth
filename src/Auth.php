@@ -113,7 +113,7 @@ class Auth
         try {
             if(is_array($data)) {
                 $user = $this->getUserClass();
-                if($user == null) throw new JwtTokenException('模型不存在');
+                if($user == null) throw new JwtTokenException('模型不存在',400);
                 foreach ($data as $key=>$val){
                     if($key !== 'password'){
                         $user = $user->where($key,$val);
@@ -123,13 +123,14 @@ class Auth
                 if($user != null){
                     if(isset($data['password'])){
                         if(!password_verify($data['password'],$user->password)){
-                            throw new JwtTokenException('密码错误');
+                            throw new JwtTokenException('密码错误',400);
                         }
                     }
                     return  $this->login($user);
                 }
+                throw new JwtTokenException('账号或密码错误',400);
             }
-            throw new JwtTokenException('数据类型不正确');
+            throw new JwtTokenException('数据类型不正确',400);
         }catch (JwtTokenException $e){
             if($this->fail){
                 throw new JwtTokenException($e->getMessage(),$e->getCode());
@@ -180,9 +181,8 @@ class Auth
     /**
      * 登入并获取Token
      * @param $data
-     * @return null|JWT
      */
-    public function login($data): ?JWT
+    public function login($data)
     {
         $fields = $this->config['guard'][$this->guard]['field']; //允许使用的数据
         $idKey = $this->config['guard'][$this->guard]['key']; //获取主键
