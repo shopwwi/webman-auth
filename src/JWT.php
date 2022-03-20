@@ -123,7 +123,7 @@ class JWT
         if (Str::startsWith($header, 'Bearer ')) {
             $token = Str::substr($header, 7);
         }
-        if(!$token && Str::startsWith($token, 'Bearer ')){
+        if(!empty($token) && Str::startsWith($token, 'Bearer ')){
             $token = Str::substr($token, 7);
         }
         $token = $token ?? session("token_{$this->guard}",null);
@@ -162,7 +162,6 @@ class JWT
         try {
             // v5.5.1 return (array) JWT::decode($token, $secretKey, [$this->config['algorithms']]);
             $tokenPayload =  jwtMan::decode($token,new Key($secretKey, $this->config['algorithms']));
-            var_dump($tokenPayload);
             if($tokenPayload->guard != $this->guard){
                 throw new SignatureInvalidException('无效令牌');
             }

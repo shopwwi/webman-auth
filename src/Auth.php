@@ -172,7 +172,7 @@ class Auth
             throw new JwtTokenException('配置信息异常',401);
         }catch (JwtTokenException $e){
             if($this->fail){
-                return $e;
+                throw new JwtTokenException($e->getMessage(),$e->getCode());
             }
             return null;
         }
@@ -277,7 +277,6 @@ class Auth
         if (Str::startsWith($key, 'base64:')) {
             $key = base64_decode(substr($key, 7));
         }
-        var_dump($key);
         $hash = password_hash($password, PASSWORD_BCRYPT, [
             'cost' => $key,
         ]);
