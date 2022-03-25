@@ -53,7 +53,12 @@ class JWT
         $this->config = $_config;
     }
 
-    public function guard($guard = 'user'): JWT
+    /**
+     * 设置角色
+     * @param string $guard
+     * @return $this
+     */
+    public function guard($guard = 'user')
     {
         $this->guard = $guard;
         return $this;

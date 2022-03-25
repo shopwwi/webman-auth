@@ -5,7 +5,8 @@
   "type": "library",
   "require": {
     "php": ">=7.2",
-    "firebase/php-jwt": "^5.4"
+    "firebase/php-jwt": "^5.4",
+    "webman/console": "^1.0"
   },
   "license": "MIT",
   "autoload": {

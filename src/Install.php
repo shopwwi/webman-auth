@@ -11,6 +11,7 @@ class Install
      */
     protected static $pathRelation = array (
         'config/plugin/shopwwi/auth' => 'config/plugin/shopwwi/auth',
+        'command' => 'app/command'
     );
 
     /**
