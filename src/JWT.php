@@ -362,7 +362,7 @@ class JWT
                     $clientTypeNum = 0;
                     $index = 0;
                     foreach ($tokenList as $key=>$val){
-                        if($key['clientType'] == $clientType){
+                        if($val['clientType'] == $clientType){
                             $clientTypeNum ++;
                             $index = $key;
                         }
