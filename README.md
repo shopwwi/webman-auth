@@ -3,49 +3,82 @@
 ```
 composer require shopwwi/webman-auth
 ```
+# 配置文件
+```
+//路径 config/plugin/shopwwi/auth/app.php
+// app_key 如果是laravel迁移过来的用户需与之前laravel的保持一致 如果是全新的 随意写个key即可
+// jwt 配置项按自己需求配置即可 redis默认为false 如果要限制终端 则改为true
+配置多用户
+
+//初始化的示例 一定要改成自己实际的
+'guard' => [
+     'user' => [
+         'key' => 'id', //主键
+         'field' => ['id','name','email','mobile'], //设置允许写入扩展中的字段 一般为数据表存在的字段
+         'num' => 0, //-1为不限制终端数量 0为只支持一个终端在线 大于0为同一账号同终端支持数量 建议设置为1 则同一账号同终端在线1个
+         'model'=> app\model\Test::class
+     ]
+];
+// 配置示例（根据自己真实情况 user一定要存在 因为默认就是user）
+// field 是可以通过jwtKey解析出来的 请勿用敏感字段 以免信息泄露
+'guard' => [
+     'user' => [ // 普通用户
+         'key' => 'id', //主键
+         'field' => ['id','username','email','mobile','avatar'], //设置允许写入扩展中的字段 一般为数据表存在的字段
+         'num' => 0, //-1为不限制终端数量 0为只支持一个终端在线 大于0为同一账号同终端支持数量 建议设置为1 则同一账号同终端在线1个
+         'model'=> app\model\User::class //用户表模型
+     ],
+     'admin' => [ // 平台用户
+         'key' => 'id', //主键
+         'field' => ['id','name','avatar'], //设置允许写入扩展中的字段 一般为数据表存在的字段
+         'num' => 0, //-1为不限制终端数量 0为只支持一个终端在线 大于0为同一账号同终端支持数量 建议设置为1 则同一账号同终端在线1个
+         'model'=> app\model\Admin::class //管理员表模型
+     ]
+];
+```
 # 使用方法
 
-1. 生成JWT密钥
+1. 生成JWT密钥(命令行)
 
 ```
-use Shopwwi\WebmanAuth\Facade\Auth;
-
-//在任意控制器里调用一次即可 比较懒没写命令 请原谅
-Auth::jwtKey();
+php webman shopwwi:auth
 
 ```
 2. 加密密码
 
-```
+```php
 use Shopwwi\WebmanAuth\Facade\Auth;
 
 //不可逆转 只能用password_verify来判断正确与否
+$password = '123456';
 Auth::bcrypt($password);
 
 ```
 3.自动对字段进行验证且登入
 
-```
+```php
 use Shopwwi\WebmanAuth\Facade\Auth;
 
 //验证字段一定得和设定得角色模型相匹配可以是任何字段组
+// 这里自动进行了model查库操作 如果你的不支持 请用自定义登入
+$tokenObject = Auth::attempt(['name'=> 'tycoonSong','password' => '123456']);
 
-    $tokenObject = Auth::attempt(['name'= 'tycoonSong','password' = '123456']);
-    返回对象$tokenObject 包含token_type,expires_in,refresh_expires_in,access_token,refresh_token
+//返回对象$tokenObject 包含token_type,expires_in,refresh_expires_in,access_token,refresh_token
     
 // 默认为user角色 当你是admin登入时
-$tokenObject = Auth::guard('admin')->attempt(['name'= 'tycoonSong','password' = '123456']);
+$tokenObject = Auth::guard('admin')->attempt(['name'=> 'tycoonSong','password' => '123456']);
 
 ```
 
 4.自定义登入
 
-```
+```php
 use Shopwwi\WebmanAuth\Facade\Auth;
+use app\model\User;
+use app\model\Admin;
+//返回对象$tokenObject 包含token_type,expires_in,refresh_expires_in,access_token,refresh_token
 
-返回对象$tokenObject 包含token_type,expires_in,refresh_expires_in,access_token,refresh_token
-
-$user = Users::first();
+$user = User::first();
 $tokenObject = Auth::login($user);//$user可以是对象 同样可以是数组
     
     
@@ -57,39 +90,41 @@ $tokenObject = Auth::guard('admin')->login($admin);
 
 5.获取当前登入用户信息
 
-```
-
- $user = Auth::user(); //得到用户模型对象，查库数据，需查询动态数据时使用
- $user = Auth::user(true); // 得到扩展数据对象，非查库数据,比如只需得到用户ID或不常更新字段使用
- $admin = Auth::guard('admin')->user(); //当前登入管理员
+```php
+    use Shopwwi\WebmanAuth\Facade\Auth;
+     $user = Auth::user(); //得到用户模型对象，查库数据，需查询动态数据时使用
+     $user = Auth::user(true); // 得到扩展数据对象，非查库数据,比如只需得到用户ID或不常更新字段使用
+     $admin = Auth::guard('admin')->user(); //当前登入管理员
  
 ```
 
 6.退出登入
 
-```
-
- $logout = Auth::logout(); //退出当前用户
- $logout = Auth::logout(true); // 退出所有当前用户终端
- $logout = Auth::guard('admin')->logout(); //管理员退出
+```php
+    use Shopwwi\WebmanAuth\Facade\Auth;
+     $logout = Auth::logout(); //退出当前用户
+     $logout = Auth::logout(true); // 退出所有当前用户终端
+     $logout = Auth::guard('admin')->logout(); //管理员退出
  
 ```
 
 7.刷新当前登入用户token
 
-```
-
- $refresh = Auth::refresh();
- $refresh = Auth::guard('admin')->refresh(); //管理员刷新
+```php
+     use Shopwwi\WebmanAuth\Facade\Auth;
+     $refresh = Auth::refresh();
+     $refresh = Auth::guard('admin')->refresh(); //管理员刷新
  
 ```
 
 8.单独设置过期时间
 
-```
-
+```php
+use Shopwwi\WebmanAuth\Facade\Auth;
+use app\model\User;
+$user = User::first();
 Auth::accessTime(3600)->refreshTime(360000)->login($user);
-Auth::accessTime(3600)->refreshTime(360000)->attempt(['name'= 'tycoonSong','password' = '123456']);
+Auth::accessTime(3600)->refreshTime(360000)->attempt(['name'=> 'tycoonSong','password' => '123456']);
 Auth::accessTime(3600)->refresh();
 
 ```
@@ -103,7 +138,7 @@ Auth::accessTime(3600)->refresh();
     $user = Auth::fail()->user(); //走的是异常处理类https://www.workerman.net/doc/webman/exception.html
 ```
 
-10.开启redis后,建议开启
+- 开启redis后,建议开启
 
 ```
     // 在使用过程中我们通常一个接口允许多端使用的情况 那么默认设置是不限制使用端口的 
@@ -111,24 +146,29 @@ Auth::accessTime(3600)->refresh();
     // 默认为web终端 传参client_type=web或你其它的终端client_type=ios
     //config/plugin/shopwwi/auth/app.php设置
     'guard' => [
-         'user' => [
-             'key' => 'id',
-             'field' => ['id','name','email','mobile'], //设置允许写入扩展中的字段
-             'num' => -1, // -1为不限制终端在线数量 0为只允许登入一个设备 大于0为每个终端同时在线数量 建议设置为1 则每个终端在线1个
-             'model'=> Shopwwi\B2b2c\Models\Users::class
+         'user' => [ // 普通用户
+             'key' => 'id', //主键
+             'field' => ['id','username','email','mobile','avatar'], //设置允许写入扩展中的字段 一般为数据表存在的字段
+             'num' => 0, //-1为不限制终端数量 0为只支持一个终端在线 大于0为同一账号同终端支持数量 建议设置为1 则同一账号同终端在线1个
+             'model'=> app\model\User::class //用户表模型
          ]
-     ],
+     ]
+     'jwt' => [
+         'redis' => false,
+         ....
+      ]
      
     Auth::logout(true); // 退出所有当前用户终端
     
 ```
 
-11.直接调用jwt
+- 直接调用jwt
 
 ```
 //本来是打算直接用tinywan/jwt的 可是跟我的业务逻辑不太匹配 因此改造了一些
     use Shopwwi\WebmanAuth\Facade\JWT as JwtFace;
-    JwtFace::make(array $extend,int $access_exp = 0,int $refresh_exp = 0); //生成token
-    JwtFace::refresh(int $accessTime = 0); //刷新令牌
-    JwtFace::verify($token); //验证令牌
+    JwtFace::guard('user')->make($extend,$access_exp,$refresh_exp); //生成token 可为make($extend)
+    JwtFace::guard('user')->refresh($accessTime = 0); //刷新令牌 可为refresh()
+    JwtFace::guard('user')->verify($token); //$token可以不填则自动验证令牌 verify()
+    JwtFace::guard('user')->getTokenExtend($token)//$token可以不填则自动验证令牌getTokenExtend()
 ```

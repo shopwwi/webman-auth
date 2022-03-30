@@ -6,14 +6,16 @@ namespace Shopwwi\WebmanAuth\Facade;
 /**
  * Class Auth
  * @package Shopwwi\WebmanAuth\Facade
- * @method \Shopwwi\WebmanAuth\Auth guard(string $name) static 设置用户角色
- * @method \Shopwwi\WebmanAuth\Auth login($data,int $access_time = 0,int $refresh_time = 0) static 登入
- * @method \Shopwwi\WebmanAuth\Auth refresh() static 刷新token
- * @method \Shopwwi\WebmanAuth\Auth logout() static 退出登入
- * @method \Shopwwi\WebmanAuth\Auth fail(bool $error = true) static 抛出错误信息
- * @method \Shopwwi\WebmanAuth\Auth attempt(array $data) static 字段检验登入
- * @method \Shopwwi\WebmanAuth\Auth jwtKey() static 生成jwt密钥
- * @method \Shopwwi\WebmanAuth\Auth bcrypt($password) static 密码加密
+ * @see \Shopwwi\WebmanAuth\Auth
+ * @mixin \Shopwwi\WebmanAuth\Auth
+ * @method guard(string $name) static 设置用户角色
+ * @method login($data,int $access_time = 0,int $refresh_time = 0) static 登入
+ * @method refresh() static 刷新token
+ * @method logout() static 退出登入
+ * @method fail(bool $error = true) static 抛出错误信息
+ * @method attempt(array $data) static 字段检验登入
+ * @method jwtKey() static 生成jwt密钥
+ * @method bcrypt($password) static 密码加密
  */
 class Auth
 {

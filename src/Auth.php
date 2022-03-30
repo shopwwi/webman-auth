@@ -252,18 +252,7 @@ class Auth
      */
     public function jwtKey()
     {
-        $key = Str::random(64);
-        file_put_contents(base_path()."/config/plugin/shopwwi/auth/app.php", str_replace(
-            "'access_secret_key' => '".config('plugin.shopwwi.auth.app.jwt.access_secret_key')."'",
-            "'access_secret_key' => '".$key."'",
-            file_get_contents(base_path()."/config/plugin/shopwwi/auth/app.php")
-        ));
-        file_put_contents(base_path()."/config/plugin/shopwwi/auth/app.php", str_replace(
-            "'refresh_secret_key' => '".config('plugin.shopwwi.auth.app.jwt.refresh_secret_key')."'",
-            "'refresh_secret_key' => '".$key."'",
-            file_get_contents(base_path()."/config/plugin/shopwwi/auth/app.php")
-        ));
-        echo $key;
+
     }
 
     /**

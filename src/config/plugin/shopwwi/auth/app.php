@@ -20,7 +20,7 @@
              'key' => 'id',
              'field' => ['id','name','email','mobile'], //设置允许写入扩展中的字段
              'num' => 0, //-1为不限制终端数量 0为只支持一个终端在线 大于0为同一账号同终端支持数量 建议设置为1 则同一账号同终端在线1个
-             'model'=> App\Model\Test::class
+             'model'=> app\model\Test::class
          ]
      ],
      'jwt' => [
