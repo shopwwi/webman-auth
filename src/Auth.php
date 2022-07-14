@@ -159,7 +159,7 @@ class Auth
     {
         try {
             $key = $this->config['guard'][$this->guard]['key']; //获取主键
-            $extend = JwtFace::getTokenExtend();
+            $extend = JwtFace::guard($this->guard)->getTokenExtend();
             if(isset($extend->extend) && !empty($extend->extend) && isset($extend->extend->$key)){
                 if($cache){
                     return $extend->extend;
@@ -206,7 +206,7 @@ class Auth
             if(!isset($newData[$idKey])){
                 throw new JwtTokenException('缺少必要主键',400);
             }
-            return JwtFace::make($newData,$this->accessTime,$this->refreshTime);
+            return JwtFace::guard($this->guard)->make($newData,$this->accessTime,$this->refreshTime);
         }catch (JwtTokenException $e){
             if($this->fail){ //当设定自动报错
                 throw new JwtTokenException($e->getError(),$e->getCode());
@@ -222,7 +222,7 @@ class Auth
     public function refresh()
     {
         try {
-            return JwtFace::refresh($this->accessTime);
+            return JwtFace::guard($this->guard)->refresh($this->accessTime);
         }catch (JwtTokenException $e){
             if($this->fail){ //当设定自动报错
                 throw new JwtTokenException($e->getError(),$e->getCode());
@@ -237,7 +237,7 @@ class Auth
     public function logout($all = false)
     {
         try {
-            return JwtFace::logout($all);
+            return JwtFace::guard($this->guard)->logout($all);
         }catch (JwtTokenException $e){
             if($this->fail){ //当设定自动报错
                 throw new JwtTokenException($e->getError(),$e->getCode());
