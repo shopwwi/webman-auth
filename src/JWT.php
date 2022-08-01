@@ -393,6 +393,7 @@ class JWT
                 if(($val['refreshTime'] + $val['refreshExp']) < time() ){
                     unset($tokenList[$key]);
                     $refresh = true;
+                    continue;
                 }
                 if(($val['accessTime'] + $val['accessExp']) < time()){
                     $tokenList[$key]['accessToken'] = '';
