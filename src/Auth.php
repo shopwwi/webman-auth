@@ -184,9 +184,9 @@ class Auth
                 }else{
                     $user = $this->getUserClass();
                     if($this->isThinkOrm()){
-                        $user = $user->where($key,$extend->extend->$key)->find();
+                        return $user->where($key,$extend->extend->$key)->find();
                     }else{
-                        $user = $user->where($key,$extend->extend->$key)->first();
+                        return $user->where($key,$extend->extend->$key)->first();
                     }
                 }
 
