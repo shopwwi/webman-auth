@@ -68,6 +68,19 @@ class Auth
         return $this;
     }
 
+    public function isThinkOrm()
+    {
+        $database = config('database');
+        if (isset($database['default']) && strpos($database['default'], 'plugin.') === 0) {
+            $database = false;
+        }
+        $thinkorm = config('thinkorm');
+        if (isset($thinkorm['default']) && strpos($thinkorm['default'], 'plugin.') === 0) {
+            $thinkorm = false;
+        }
+        return !$database && $thinkorm;
+    }
+
     /**
      * 单独设定token过期时间
      * @param int $num
@@ -118,7 +131,13 @@ class Auth
                         $user = $user->where($key,$val);
                     }
                 }
-                $user = $user->first();
+
+                if($this->isThinkOrm()){
+                    $user = $user->find();
+                }else{
+                    $user = $user->first();
+                }
+
                 if($user != null){
                     if(isset($data['password'])){
                         if(!password_verify($data['password'],$user->password)){
@@ -164,7 +183,11 @@ class Auth
                     return $extend->extend;
                 }else{
                     $user = $this->getUserClass();
-                    return $user->where($key,$extend->extend->$key)->first();
+                    if($this->isThinkOrm()){
+                        $user = $user->where($key,$extend->extend->$key)->find();
+                    }else{
+                        $user = $user->where($key,$extend->extend->$key)->first();
+                    }
                 }
 
             }
