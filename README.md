@@ -1,3 +1,4 @@
+[!['Build Status'](https://travis-ci.org/shopwwi/webman-auth.svg?branch=main)](https://github.com/shopwwi/webman-auth) [!['Latest Stable Version'](https://poser.pugx.org/shopwwi/webman-auth/v/stable.svg)](https://packagist.org/packages/shopwwi/webman-auth) [!['Total Downloads'](https://poser.pugx.org/shopwwi/webman-auth/d/total.svg)](https://packagist.org/packages/shopwwi/webman-auth) [!['License'](https://poser.pugx.org/shopwwi/webman-auth/license.svg)](https://packagist.org/packages/shopwwi/webman-auth)
 # 安装
 
 ```
