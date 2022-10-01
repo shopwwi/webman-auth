@@ -18,7 +18,6 @@ namespace Shopwwi\WebmanAuth;
 use Shopwwi\WebmanAuth\Exception\JwtTokenException;
 use Shopwwi\WebmanAuth\Facade\JWT as JwtFace;
 use Shopwwi\WebmanAuth\Facade\Str;
-use support\Redis;
 
 class Auth
 {

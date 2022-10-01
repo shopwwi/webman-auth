@@ -161,11 +161,19 @@ Auth::accessTime(3600)->refresh();
     Auth::logout(true); // 退出所有当前用户终端
     
 ```
+- 获取所有redis用户及终端状态
+```
+    // 你可以使用redis hash对终端在线更好的管理 比如对某个用户进行下线处理，或查询用户的token有效期
+    // 具体业务自行根据需求去实现 本系统未对这方面业务进行封装
+    $guard = 'user';
+    Redis::hGetAll('token_'.$guard);
+    // 用户编号为1 的 token下线清除 ，可以批量
+    Redis::hDel('token_'.$guard,[1]);
+```
 
 - 直接调用jwt
 
 ```
-//本来是打算直接用tinywan/jwt的 可是跟我的业务逻辑不太匹配 因此改造了一些
     use Shopwwi\WebmanAuth\Facade\JWT as JwtFace;
     JwtFace::guard('user')->make($extend,$access_exp,$refresh_exp); //生成token 可为make($extend)
     JwtFace::guard('user')->refresh($accessTime = 0); //刷新令牌 可为refresh()
