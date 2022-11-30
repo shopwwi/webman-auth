@@ -304,7 +304,7 @@ class JWT
             $idKey = config("plugin.shopwwi.auth.app.guard.{$this->guard}.key");
             $id = $tokenPayload->extend->$idKey;
             if($all){
-                Redis::hDel("token_{$this->guard}",[$id]);
+                Redis::hDel("token_{$this->guard}",$id);
             }else{
                 $list = Redis::hGet("token_{$this->guard}",$id);
                 if($list){
@@ -315,7 +315,7 @@ class JWT
                         }
                     }
                     if(count($tokenList) == 0){
-                        Redis::hDel("token_{$this->guard}",[$id]);
+                        Redis::hDel("token_{$this->guard}",$id);
                     }else{
                         Redis::hSet("token_{$this->guard}",$id,serialize($tokenList));
                     }
@@ -400,7 +400,7 @@ class JWT
                 }
             }
             if(count($tokenList) == 0){
-                Redis::hDel("token_{$this->guard}",[$id]);
+                Redis::hDel("token_{$this->guard}",$id);
             }else{
                 if($refresh){
                     Redis::hSet("token_{$this->guard}",$id,serialize($tokenList));
@@ -438,7 +438,7 @@ class JWT
                 }
             }
             if(count($tokenList) == 0){
-                Redis::hDel("token_{$this->guard}",[$id]);
+                Redis::hDel("token_{$this->guard}",$id);
             }else{
                 Redis::hSet("token_{$this->guard}",$id,serialize($tokenList));
             }
