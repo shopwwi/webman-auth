@@ -19,9 +19,9 @@ namespace Shopwwi\WebmanAuth;
 
 use Firebase\JWT\BeforeValidException;
 use Firebase\JWT\ExpiredException;
+use Firebase\JWT\JWT as jwtMan;
 use Firebase\JWT\Key;
 use Firebase\JWT\SignatureInvalidException;
-use Firebase\JWT\JWT as jwtMan;
 use Shopwwi\WebmanAuth\Exception\JwtTokenException;
 use Shopwwi\WebmanAuth\Facade\Str;
 use support\Redis;
@@ -32,7 +32,7 @@ class JWT
     /**
      *  access_token. refresh_token.
      */
-    const REFRESH = 2,ACCESS = 1;
+    const REFRESH = 2, ACCESS = 1;
 
     /**
      * 自动报错
@@ -41,6 +41,7 @@ class JWT
     protected $guard = 'user';
     protected $config = [];
     protected $redis = false;
+
     /**
      * 构造方法
      * @access public
@@ -52,7 +53,7 @@ class JWT
             throw new JwtTokenException('The configuration file is abnormal or does not exist');
         }
         $this->config = $_config;
-        if($_config['redis']){
+        if ($_config['redis']) {
 
             $this->redis = true;
         }
@@ -77,11 +78,11 @@ class JWT
      * @param int $refresh_exp
      * @return mixed
      */
-    public function make(array $extend,int $access_exp = 0,int $refresh_exp = 0)
+    public function make(array $extend, int $access_exp = 0, int $refresh_exp = 0)
     {
-        $exp = $access_exp > 0? $access_exp : $this->config['access_exp'];
+        $exp = $access_exp > 0 ? $access_exp : $this->config['access_exp'];
         $refreshExp = $refresh_exp > 0 ? $refresh_exp : $this->config['refresh_exp'];
-        $payload = self::payload($extend,$exp,$refreshExp);
+        $payload = self::payload($extend, $exp, $refreshExp);
         $secretKey = self::getPrivateKey();
         $accessToken = self::makeToken($payload['accessPayload'], $secretKey, $this->config['algorithms']);
 
@@ -90,14 +91,14 @@ class JWT
 
         //获取主键
         $idKey = config("plugin.shopwwi.auth.app.guard.{$this->guard}.key");
-         //redis 开启
-        if($this->redis){
-            $this->setRedis($extend[$idKey],$accessToken,$refreshToken,$exp,$refreshExp);
+        //redis 开启
+        if ($this->redis) {
+            $this->setRedis($extend[$idKey], $accessToken, $refreshToken, $exp, $refreshExp);
             //存储session
-            session()->set("token_{$this->guard}",$accessToken);
-        }else{
+            session()->set("token_{$this->guard}", $accessToken);
+        } else {
             //存储session
-            session()->set("token_{$this->guard}",$accessToken);
+            session()->set("token_{$this->guard}", $accessToken);
         }
         return json_decode(json_encode([
             'token_type' => 'Bearer',
@@ -115,11 +116,17 @@ class JWT
     public function refresh(int $accessTime = 0): ?object
     {
         $token = $this->getTokenFormHeader();
-        $tokenPayload = (array) self::verifyToken($token, self::REFRESH);
-        $tokenPayload['exp'] = $tokenPayload['exp'] + ($accessTime > 0 ?$accessTime:$this->config['access_exp']);
+        $tokenPayload = (array)self::verifyToken($token, self::REFRESH);
+        $tokenPayload['exp'] = $tokenPayload['exp'] + ($accessTime > 0 ? $accessTime : $this->config['access_exp']);
         $secretKey = $this->getPrivateKey();
-        $token = $this->makeToken($tokenPayload, $secretKey, $this->config['algorithms']);
-        return json_decode(json_encode(['access_token' => $token]));
+        $newToken = $this->makeToken($tokenPayload, $secretKey, $this->config['algorithms']);
+        $tokenObj = json_decode(json_encode(['access_token' => $newToken]));
+        if ($this->redis) {
+            //获取主键
+            $idKey = config("plugin.shopwwi.auth.app.guard.{$this->guard}.key");
+            $this->setRedis($tokenPayload['extend']->$idKey, $tokenObj->access_token, $token, $tokenPayload['exp'], $this->config['refresh_exp']);
+        }
+        return $tokenObj;
     }
 
     /**
@@ -133,11 +140,11 @@ class JWT
         if (Str::startsWith($header, 'Bearer ')) {
             $token = Str::substr($header, 7);
         }
-        if(!empty($token) && Str::startsWith($token, 'Bearer ')){
+        if (!empty($token) && Str::startsWith($token, 'Bearer ')) {
             $token = Str::substr($token, 7);
         }
-        $token = $token ?? session("token_{$this->guard}",null);
-        if(empty($token)){
+        $token = $token ?? session("token_{$this->guard}", null);
+        if (empty($token)) {
             $token = null;
             $fail = new JwtTokenException('尝试获取的Authorization信息不存在');
             $fail->setCode(401);
@@ -165,36 +172,37 @@ class JWT
      * @param int $tokenType
      * @return object
      */
-    public function verifyToken(string $token,int $tokenType): ?object
+    public function verifyToken(string $token, int $tokenType): ?object
     {
         $secretKey = self::ACCESS == $tokenType ? $this->getPublicKey($this->config['algorithms']) : $this->getPublicKey($this->config['algorithms'], self::REFRESH);
         jwtMan::$leeway = 60;
         try {
             // v5.5.1 return (array) JWT::decode($token, $secretKey, [$this->config['algorithms']]);
-            $tokenPayload =  jwtMan::decode($token,new Key($secretKey, $this->config['algorithms']));
-            if($tokenPayload->guard != $this->guard){
+            $tokenPayload = jwtMan::decode($token, new Key($secretKey, $this->config['algorithms']));
+            if ($tokenPayload->guard != $this->guard) {
                 throw new SignatureInvalidException('无效令牌');
             }
             //redis 开启
-            if($this->redis){
+            if ($this->redis) {
                 //获取主键
                 $idKey = config("plugin.shopwwi.auth.app.guard.{$this->guard}.key");
-                $this->checkRedis($tokenPayload->extend->$idKey,$token,$tokenType);
+                $this->checkRedis($tokenPayload->extend->$idKey, $token, $tokenType);
             }
             return $tokenPayload;
-        } catch(SignatureInvalidException $e) {
-            throw new JwtTokenException('身份验证令牌无效',401);
-        }catch(BeforeValidException $e) { // 签名在某个时间点之后才能用
-            throw new JwtTokenException('身份验证令牌尚未生效',403);
-        }catch(ExpiredException $e) { // token过期
-            throw new JwtTokenException('身份验证会话已过期，请重新登录！',402);
+        } catch (SignatureInvalidException $e) {
+            throw new JwtTokenException('身份验证令牌无效', 401);
+        } catch (BeforeValidException $e) { // 签名在某个时间点之后才能用
+            throw new JwtTokenException('身份验证令牌尚未生效', 403);
+        } catch (ExpiredException $e) { // token过期
+            throw new JwtTokenException('身份验证会话已过期，请重新登录！', 402);
         } catch (UnexpectedValueException $unexpectedValueException) {
-            throw new JwtTokenException('获取扩展字段不正确',401);
+            throw new JwtTokenException('获取扩展字段不正确', 401);
         } catch (\Exception $exception) {
-            throw new JwtTokenException($exception->getMessage(),401);
+            throw new JwtTokenException($exception->getMessage(), 401);
         }
 
     }
+
     /**
      * 获取扩展字段.
      * @param string|null $token
@@ -206,6 +214,7 @@ class JWT
     {
         return $this->verify($token, $tokenType);
     }
+
     /**
      * 生成token值
      * @param array $payload
@@ -217,10 +226,10 @@ class JWT
     {
         try {
             return jwtMan::encode($payload, $secretKey, $algorithms);
-        }catch(ExpiredException $e){ //签名不正确
-            throw new JwtTokenException('签名不正确',401);
-        }catch(\Exception $e) { //其他错误
-            throw new JwtTokenException('其它错误',401);
+        } catch (ExpiredException $e) { //签名不正确
+            throw new JwtTokenException('签名不正确', 401);
+        } catch (\Exception $e) { //其他错误
+            throw new JwtTokenException('其它错误', 401);
         }
     }
 
@@ -231,14 +240,14 @@ class JWT
      * @param int $refresh_exp
      * @return array
      */
-    public function payload(array $extend,int $access_exp = 0,int $refresh_exp = 0): array
+    public function payload(array $extend, int $access_exp = 0, int $refresh_exp = 0): array
     {
         $basePayload = [
             'iss' => $this->config['iss'],
             'iat' => time(),
             'exp' => time() + $access_exp,
             'extend' => $extend,
-            'guard'=> $this->guard
+            'guard' => $this->guard
         ];
         $resPayLoad['accessPayload'] = $basePayload;
         $basePayload['exp'] = time() + $refresh_exp;
@@ -256,7 +265,7 @@ class JWT
     {
         switch ($algorithm) {
             case 'HS256':
-                $key = self::ACCESS == $tokenType ? $this->config['access_secret_key'] :$this->config['refresh_secret_key'];
+                $key = self::ACCESS == $tokenType ? $this->config['access_secret_key'] : $this->config['refresh_secret_key'];
                 break;
             case 'RS512':
             case 'RS256':
@@ -293,31 +302,31 @@ class JWT
     /**
      * 退出登入
      */
-    public function logout( $all = false)
+    public function logout($all = false)
     {
         $token = $this->getTokenFormHeader();
         $tokenPayload = self::verifyToken($token, self::ACCESS);
         //redis 开启
-        if(isset($this->config['redis']) && $this->config['redis']){
+        if (isset($this->config['redis']) && $this->config['redis']) {
 
             //获取主键
             $idKey = config("plugin.shopwwi.auth.app.guard.{$this->guard}.key");
             $id = $tokenPayload->extend->$idKey;
-            if($all){
-                Redis::hDel("token_{$this->guard}",$id);
-            }else{
-                $list = Redis::hGet("token_{$this->guard}",$id);
-                if($list){
+            if ($all) {
+                Redis::hDel("token_{$this->guard}", $id);
+            } else {
+                $list = Redis::hGet("token_{$this->guard}", $id);
+                if ($list) {
                     $tokenList = unserialize($list);
-                    foreach ($tokenList as $key=>$val){
-                        if($val['accessToken'] == $token ){
+                    foreach ($tokenList as $key => $val) {
+                        if ($val['accessToken'] == $token) {
                             unset($tokenList[$key]);
                         }
                     }
-                    if(count($tokenList) == 0){
-                        Redis::hDel("token_{$this->guard}",$id);
-                    }else{
-                        Redis::hSet("token_{$this->guard}",$id,serialize($tokenList));
+                    if (count($tokenList) == 0) {
+                        Redis::hDel("token_{$this->guard}", $id);
+                    } else {
+                        Redis::hSet("token_{$this->guard}", $id, serialize($tokenList));
                     }
                 }
             }
@@ -335,47 +344,64 @@ class JWT
      * @param $accessExp
      * @param $refreshExp
      */
-    protected function setRedis(int $id,$accessToken,$refreshToken,$accessExp,$refreshExp){
-        $list = Redis::hGet("token_{$this->guard}",$id);
-        $clientType = strtolower( request()->input('client_type','web'));
+    protected function setRedis(int $id, $accessToken, $refreshToken, $accessExp, $refreshExp)
+    {
+        $list = Redis::hGet("token_{$this->guard}", $id);
+        $clientType = strtolower(request()->input('client_type', 'web'));
         $defaultList = [
             'accessToken' => $accessToken,
             'refreshToken' => $refreshToken,
             'clientType' => $clientType,
-            'accessExp' =>$accessExp,
+            'accessExp' => $accessExp,
             'refreshExp' => $refreshExp,
             'refreshTime' => time(),
             'accessTime' => time(),
         ];
-        if($list != null){
+        if ($list != null) {
             $tokenList = unserialize($list);
             $maxNum = config("plugin.shopwwi.auth.app.guard.{$this->guard}.num");
-            if(is_array($tokenList)){
-                if($maxNum === -1){ //不限制
-                    $tokenList[] = $defaultList;
-                    Redis::hSet("token_{$this->guard}",$id,serialize($tokenList));
-                }elseif ($maxNum === 0){ // 只允许一个终端
-                    Redis::hSet("token_{$this->guard}",$id,serialize([$defaultList]));
-                }elseif ($maxNum > 0){ // 限制同一终端使用个数
-                    $clientTypeNum = 0;
-                    $index = 0;
-                    foreach ($tokenList as $key=>$val){
-                        if($val['clientType'] == $clientType){
-                            $clientTypeNum ++;
-                            $index = $key;
+            if (is_array($tokenList)) {
+                if ($maxNum === -1) { //不限制
+                    $match = false;
+                    foreach ($tokenList as &$item) {
+                        if ($item['refreshToken'] === $refreshToken) {
+                            $match = true;
+                            $item['accessToken'] = $accessToken;
+                            break;
                         }
                     }
-                    if($clientTypeNum >= $maxNum){
+                    !$match && $tokenList[] = $defaultList;
+                    Redis::hSet("token_{$this->guard}", $id, serialize($tokenList));
+                } elseif ($maxNum === 0) { // 只允许一个终端
+                    Redis::hSet("token_{$this->guard}", $id, serialize([$defaultList]));
+                } elseif ($maxNum > 0) { // 限制同一终端使用个数
+                    $clientTypeNum = 0;
+                    $index = -1;
+                    foreach ($tokenList as $key => $val) {
+                        if ($val['clientType'] == $clientType) {
+                            $clientTypeNum++;
+                            $index < 0 && $index = $key;
+                        }
+                    }
+                    if ($index >= 0 && $clientTypeNum >= $maxNum) {
                         unset($tokenList[$index]);
                     }
-                    $tokenList[] = $defaultList;
-                    Redis::hSet("token_{$this->guard}",$id,serialize($tokenList));
+                    $match = false;
+                    foreach ($tokenList as &$item) {
+                        if ($item['refreshToken'] === $refreshToken) {
+                            $match = true;
+                            $item['accessToken'] = $accessToken;
+                            break;
+                        }
+                    }
+                    !$match && $tokenList[] = $defaultList;
+                    Redis::hSet("token_{$this->guard}", $id, serialize($tokenList));
                 }
                 //清理过期token
                 $this->clearExpRedis($id);
             }
-        }else{
-            Redis::hSet("token_{$this->guard}",$id,serialize([$defaultList]));
+        } else {
+            Redis::hSet("token_{$this->guard}", $id, serialize([$defaultList]));
         }
     }
 
@@ -383,27 +409,28 @@ class JWT
      * 清理过期token
      * @param int $id
      */
-    public function clearExpRedis(int $id){
-        $list = Redis::hGet("token_{$this->guard}",$id);
-        if($list){
+    public function clearExpRedis(int $id)
+    {
+        $list = Redis::hGet("token_{$this->guard}", $id);
+        if ($list) {
             $tokenList = unserialize($list);
             $refresh = false;
-            foreach ($tokenList as $key=>$val){
-                if(($val['refreshTime'] + $val['refreshExp']) < time() ){
+            foreach ($tokenList as $key => $val) {
+                if (($val['refreshTime'] + $val['refreshExp']) < time()) {
                     unset($tokenList[$key]);
                     $refresh = true;
                     continue;
                 }
-                if(($val['accessTime'] + $val['accessExp']) < time()){
+                if (($val['accessTime'] + $val['accessExp']) < time()) {
                     $tokenList[$key]['accessToken'] = '';
                     $refresh = true;
                 }
             }
-            if(count($tokenList) == 0){
-                Redis::hDel("token_{$this->guard}",$id);
-            }else{
-                if($refresh){
-                    Redis::hSet("token_{$this->guard}",$id,serialize($tokenList));
+            if (count($tokenList) == 0) {
+                Redis::hDel("token_{$this->guard}", $id);
+            } else {
+                if ($refresh) {
+                    Redis::hSet("token_{$this->guard}", $id, serialize($tokenList));
                 }
             }
         }
@@ -415,41 +442,41 @@ class JWT
      * @param string $token
      * @param int $tokenType
      */
-    public function checkRedis(int $id,string $token,int $tokenType = self::ACCESS)
+    public function checkRedis(int $id, string $token, int $tokenType = self::ACCESS)
     {
-        $list = Redis::hGet("token_{$this->guard}",$id);
-        if($list != null){
+        $list = Redis::hGet("token_{$this->guard}", $id);
+        if ($list != null) {
             $tokenList = unserialize($list);
             $checkToken = false;
-            foreach ($tokenList as $key=>$val){
-                if($tokenType == self::REFRESH && $val['refreshToken'] == $token){
-                    if(\bcadd($val['refreshTime'],$val['refreshExp'],0) < time()){
+            foreach ($tokenList as $key => $val) {
+                if ($tokenType == self::REFRESH && $val['refreshToken'] == $token) {
+                    if (\bcadd($val['refreshTime'], $val['refreshExp'], 0) < time()) {
                         unset($tokenList[$key]);
-                    }else{
+                    } else {
                         $checkToken = true;
                     }
                 }
-                if($tokenType == self::ACCESS && $val['accessToken'] == $token){
-                    if(\bcadd($val['accessTime'],$val['accessExp'],0) < time()){
+                if ($tokenType == self::ACCESS && $val['accessToken'] == $token) {
+                    if (\bcadd($val['accessTime'], $val['accessExp'], 0) < time()) {
                         unset($tokenList[$key]);
-                    }else{
+                    } else {
                         $checkToken = true;
                     }
                 }
             }
-            if(count($tokenList) == 0){
-                Redis::hDel("token_{$this->guard}",$id);
-            }else{
-                Redis::hSet("token_{$this->guard}",$id,serialize($tokenList));
+            if (count($tokenList) == 0) {
+                Redis::hDel("token_{$this->guard}", $id);
+            } else {
+                Redis::hSet("token_{$this->guard}", $id, serialize($tokenList));
             }
-            if(!$checkToken){
-                if($tokenType == self::ACCESS){
+            if (!$checkToken) {
+                if ($tokenType == self::ACCESS) {
                     throw new SignatureInvalidException('无效');
-                }else{
+                } else {
                     throw new ExpiredException('无效');
                 }
             }
-        }else{
+        } else {
             throw new SignatureInvalidException('无效');
         }
     }
@@ -458,7 +485,7 @@ class JWT
      * 动态方法 直接调用is方法进行验证
      * @access public
      * @param string $method 方法名
-     * @param array $args   调用参数
+     * @param array $args 调用参数
      * @return bool
      */
     public function __call(string $method, array $args)
