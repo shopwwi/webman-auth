@@ -117,14 +117,14 @@ class JWT
     {
         $token = $this->getTokenFormHeader();
         $tokenPayload = (array)self::verifyToken($token, self::REFRESH);
-        $tokenPayload['exp'] = $tokenPayload['exp'] + ($accessTime > 0 ? $accessTime : $this->config['access_exp']);
+        $tokenPayload['exp'] = time() + ($accessTime > 0 ? $accessTime : $this->config['access_exp']);
         $secretKey = $this->getPrivateKey();
         $newToken = $this->makeToken($tokenPayload, $secretKey, $this->config['algorithms']);
         $tokenObj = json_decode(json_encode(['access_token' => $newToken]));
         if ($this->redis) {
             //获取主键
             $idKey = config("plugin.shopwwi.auth.app.guard.{$this->guard}.key");
-            $this->setRedis($tokenPayload['extend']->$idKey, $tokenObj->access_token, $token, $tokenPayload['exp'], $this->config['refresh_exp']);
+            $this->setRedis($tokenPayload['extend']->$idKey, $tokenObj->access_token, $token, $this->config['access_exp'], $this->config['refresh_exp']);
         }
         return $tokenObj;
     }
@@ -367,6 +367,8 @@ class JWT
                         if ($item['refreshToken'] === $refreshToken) {
                             $match = true;
                             $item['accessToken'] = $accessToken;
+                            $item['accessExp'] = $accessExp;
+                            $item['accessTime'] = $defaultList['accessTime'];
                             break;
                         }
                     }
@@ -391,6 +393,8 @@ class JWT
                         if ($item['refreshToken'] === $refreshToken) {
                             $match = true;
                             $item['accessToken'] = $accessToken;
+                            $item['accessExp'] = $accessExp;
+                            $item['accessTime'] = $defaultList['accessTime'];
                             break;
                         }
                     }
@@ -419,11 +423,6 @@ class JWT
                 if (($val['refreshTime'] + $val['refreshExp']) < time()) {
                     unset($tokenList[$key]);
                     $refresh = true;
-                    continue;
-                }
-                if (($val['accessTime'] + $val['accessExp']) < time()) {
-                    $tokenList[$key]['accessToken'] = '';
-                    $refresh = true;
                 }
             }
             if (count($tokenList) == 0) {
@@ -448,6 +447,7 @@ class JWT
         if ($list != null) {
             $tokenList = unserialize($list);
             $checkToken = false;
+            $expireToken = false;
             foreach ($tokenList as $key => $val) {
                 if ($tokenType == self::REFRESH && $val['refreshToken'] == $token) {
                     if (\bcadd($val['refreshTime'], $val['refreshExp'], 0) < time()) {
@@ -458,7 +458,7 @@ class JWT
                 }
                 if ($tokenType == self::ACCESS && $val['accessToken'] == $token) {
                     if (\bcadd($val['accessTime'], $val['accessExp'], 0) < time()) {
-                        unset($tokenList[$key]);
+                        $expireToken = true;
                     } else {
                         $checkToken = true;
                     }
@@ -470,10 +470,10 @@ class JWT
                 Redis::hSet("token_{$this->guard}", $id, serialize($tokenList));
             }
             if (!$checkToken) {
-                if ($tokenType == self::ACCESS) {
-                    throw new SignatureInvalidException('无效');
-                } else {
+                if ($expireToken) {
                     throw new ExpiredException('无效');
+                } else {
+                    throw new SignatureInvalidException('无效');
                 }
             }
         } else {
