@@ -212,15 +212,11 @@ class Auth
         // 过滤存储数据
         if(is_object($data)){
             foreach ($fields as $key){
-                if(isset($data->$key)){
-                    $newData[$key] = $data->$key;
-                }
+                $newData[$key] = $data->$key ?? null;
             }
         }elseif(is_array($data) && count($data) > 0){
             foreach ($fields as $key){
-                if(isset($data[$key])){
-                    $newData[$key] = $data[$key];
-                }
+                $newData[$key] = $data[$key] ?? null;
             }
         }
 
