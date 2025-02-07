@@ -6,7 +6,7 @@
   "require": {
     "php": ">=7.2",
     "firebase/php-jwt": ">=5.4|^6.0",
-    "webman/console": "^1.0"
+    "webman/console": "^1.0 || ^2.0 || dev-master"
   },
   "license": "MIT",
   "autoload": {
