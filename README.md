@@ -17,7 +17,8 @@ composer require shopwwi/webman-auth
          'key' => 'id', //主键
          'field' => ['id','name','email','mobile'], //设置允许写入扩展中的字段 一般为数据表存在的字段
          'num' => 0, //-1为不限制终端数量 0为只支持一个终端在线 大于0为同一账号同终端支持数量 建议设置为1 则同一账号同终端在线1个
-         'model'=> app\model\Test::class
+         'model'=> app\model\Test::class // 默认laravel
+        // 'model'=> [app\model\Test::class,'thinkphp'] // 指定ORM类型 
      ]
 ];
 // 配置示例（根据自己真实情况 user一定要存在 因为默认就是user）

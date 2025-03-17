@@ -1,16 +1,16 @@
 <?php
 /**
- *-------------------------------------------------------------------------p*
+ *-------------------------------------------------------------------------s*
  *
  *-------------------------------------------------------------------------h*
- * @copyright  Copyright (c) 2015-2022 Shopwwi Inc. (http://www.shopwwi.com)
- *-------------------------------------------------------------------------c*
+ * @copyright  Copyright (c) 2015-2099 Shopwwi Inc. (http://www.shopwwi.com)
+ *-------------------------------------------------------------------------o*
  * @license    http://www.shopwwi.com        s h o p w w i . c o m
- *-------------------------------------------------------------------------e*
- * @link       http://www.shopwwi.com by 象讯科技 phcent.com
- *-------------------------------------------------------------------------n*
- * @since      shopwwi象讯·PHP商城系统Pro
- *-------------------------------------------------------------------------t*
+ *-------------------------------------------------------------------------p*
+ * @link       http://www.shopwwi.com 
+ *-------------------------------------------------------------------------w*
+ * @since      shopwwi
+ *-------------------------------------------------------------------------w*
  */
 
 
@@ -41,6 +41,7 @@ class JWT
     protected $guard = 'user';
     protected $config = [];
     protected $redis = false;
+    protected $redis_prefix = '';
 
     /**
      * 构造方法
@@ -56,6 +57,7 @@ class JWT
         if ($_config['redis']) {
 
             $this->redis = true;
+            $this->redis_prefix = $_config['redis_prefix'] ?? '';
         }
 
     }
@@ -313,9 +315,9 @@ class JWT
             $idKey = config("plugin.shopwwi.auth.app.guard.{$this->guard}.key");
             $id = $tokenPayload->extend->$idKey;
             if ($all) {
-                Redis::hDel("token_{$this->guard}", $id);
+                Redis::hDel("{$this->redis_prefix}token_{$this->guard}", $id);
             } else {
-                $list = Redis::hGet("token_{$this->guard}", $id);
+                $list = Redis::hGet("{$this->redis_prefix}token_{$this->guard}", $id);
                 if ($list) {
                     $tokenList = unserialize($list);
                     foreach ($tokenList as $key => $val) {
@@ -324,9 +326,9 @@ class JWT
                         }
                     }
                     if (count($tokenList) == 0) {
-                        Redis::hDel("token_{$this->guard}", $id);
+                        Redis::hDel("{$this->redis_prefix}token_{$this->guard}", $id);
                     } else {
-                        Redis::hSet("token_{$this->guard}", $id, serialize($tokenList));
+                        Redis::hSet("{$this->redis_prefix}token_{$this->guard}", $id, serialize($tokenList));
                     }
                 }
             }
@@ -346,7 +348,7 @@ class JWT
      */
     protected function setRedis(int $id, $accessToken, $refreshToken, $accessExp, $refreshExp)
     {
-        $list = Redis::hGet("token_{$this->guard}", $id);
+        $list = Redis::hGet("{$this->redis_prefix}token_{$this->guard}", $id);
         $clientType = strtolower(request()->input('client_type', 'web'));
         $defaultList = [
             'accessToken' => $accessToken,
@@ -373,9 +375,9 @@ class JWT
                         }
                     }
                     !$match && $tokenList[] = $defaultList;
-                    Redis::hSet("token_{$this->guard}", $id, serialize($tokenList));
+                    Redis::hSet("{$this->redis_prefix}token_{$this->guard}", $id, serialize($tokenList));
                 } elseif ($maxNum === 0) { // 只允许一个终端
-                    Redis::hSet("token_{$this->guard}", $id, serialize([$defaultList]));
+                    Redis::hSet("{$this->redis_prefix}token_{$this->guard}", $id, serialize([$defaultList]));
                 } elseif ($maxNum > 0) { // 限制同一终端使用个数
                     $clientTypeNum = 0;
                     $index = -1;
@@ -399,13 +401,13 @@ class JWT
                         }
                     }
                     !$match && $tokenList[] = $defaultList;
-                    Redis::hSet("token_{$this->guard}", $id, serialize($tokenList));
+                    Redis::hSet("{$this->redis_prefix}token_{$this->guard}", $id, serialize($tokenList));
                 }
                 //清理过期token
                 $this->clearExpRedis($id);
             }
         } else {
-            Redis::hSet("token_{$this->guard}", $id, serialize([$defaultList]));
+            Redis::hSet("{$this->redis_prefix}token_{$this->guard}", $id, serialize([$defaultList]));
         }
     }
 
@@ -415,7 +417,7 @@ class JWT
      */
     public function clearExpRedis(int $id)
     {
-        $list = Redis::hGet("token_{$this->guard}", $id);
+        $list = Redis::hGet("{$this->redis_prefix}token_{$this->guard}", $id);
         if ($list) {
             $tokenList = unserialize($list);
             $refresh = false;
@@ -426,10 +428,10 @@ class JWT
                 }
             }
             if (count($tokenList) == 0) {
-                Redis::hDel("token_{$this->guard}", $id);
+                Redis::hDel("{$this->redis_prefix}token_{$this->guard}", $id);
             } else {
                 if ($refresh) {
-                    Redis::hSet("token_{$this->guard}", $id, serialize($tokenList));
+                    Redis::hSet("{$this->redis_prefix}token_{$this->guard}", $id, serialize($tokenList));
                 }
             }
         }
@@ -443,7 +445,7 @@ class JWT
      */
     public function checkRedis(int $id, string $token, int $tokenType = self::ACCESS)
     {
-        $list = Redis::hGet("token_{$this->guard}", $id);
+        $list = Redis::hGet("{$this->redis_prefix}token_{$this->guard}", $id);
         if ($list != null) {
             $tokenList = unserialize($list);
             $checkToken = false;
@@ -465,9 +467,9 @@ class JWT
                 }
             }
             if (count($tokenList) == 0) {
-                Redis::hDel("token_{$this->guard}", $id);
+                Redis::hDel("{$this->redis_prefix}token_{$this->guard}", $id);
             } else {
-                Redis::hSet("token_{$this->guard}", $id, serialize($tokenList));
+                Redis::hSet("{$this->redis_prefix}token_{$this->guard}", $id, serialize($tokenList));
             }
             if (!$checkToken) {
                 if ($expireToken) {

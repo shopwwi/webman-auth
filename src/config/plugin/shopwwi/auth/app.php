@@ -1,17 +1,5 @@
 <?php
-/**
- *-------------------------------------------------------------------------p*
- *
- *-------------------------------------------------------------------------h*
- * @copyright  Copyright (c) 2015-2022 Shopwwi Inc. (http://www.shopwwi.com)
- *-------------------------------------------------------------------------c*
- * @license    http://www.shopwwi.com        s h o p w w i . c o m
- *-------------------------------------------------------------------------e*
- * @link       http://www.shopwwi.com by 象讯科技 phcent.com
- *-------------------------------------------------------------------------n*
- * @since      shopwwi象讯·PHP商城系统Pro
- *-------------------------------------------------------------------------t*
- */
+
  return [
      'enable' => true,
      'app_key' => 'base64:N721v3Gt2I58HH7oiU7a70PQ+i8ekPWRqwI+JSnM1wo=',
@@ -20,11 +8,13 @@
              'key' => 'id',
              'field' => ['id','name','email','mobile'], //设置允许写入扩展中的字段
              'num' => 0, //-1为不限制终端数量 0为只支持一个终端在线 大于0为同一账号同终端支持数量 建议设置为1 则同一账号同终端在线1个
-             'model'=> app\model\Test::class
+             'model'=> app\model\Test::class // 当为数组时 [app\model\Test::class,'thinkphp'] 来说明模型归属
          ]
      ],
      'jwt' => [
          'redis' => false,
+         // redis前缀
+         'redis_prefix' => '',
          // 算法类型 ES256、HS256、HS384、HS512、RS256、RS384、RS512
          'algorithms' => 'HS256',
          // access令牌秘钥
