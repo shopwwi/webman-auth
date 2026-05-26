@@ -162,7 +162,7 @@ class JWT
      * @return object
      * @throws JwtTokenException
      */
-    public function verify(string $token = null, int $tokenType = self::ACCESS): ?object
+    public function verify(?string $token = null, int $tokenType = self::ACCESS): ?object
     {
         $token = $token ?? $this->getTokenFormHeader();
         return $this->verifyToken($token, $tokenType);
@@ -212,7 +212,7 @@ class JWT
      * @return object
      * @throws JwtTokenException
      */
-    public function getTokenExtend(string $token = null, int $tokenType = self::ACCESS): ?object
+    public function getTokenExtend(?string $token = null, int $tokenType = self::ACCESS): ?object
     {
         return $this->verify($token, $tokenType);
     }
