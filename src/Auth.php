@@ -1,16 +1,16 @@
 <?php
 /**
- *-------------------------------------------------------------------------p*
+ *-------------------------------------------------------------------------s*
  * 用户信息自动维护
  *-------------------------------------------------------------------------h*
- * @copyright  Copyright (c) 2015-2022 Shopwwi Inc. (http://www.shopwwi.com)
- *-------------------------------------------------------------------------c*
+ * @copyright  Copyright (c) 2025-2099 Shopwwi Inc. (http://www.shopwwi.com)
+ *-------------------------------------------------------------------------o*
  * @license    http://www.shopwwi.com        s h o p w w i . c o m
- *-------------------------------------------------------------------------e*
- * @link       http://www.shopwwi.com by 象讯科技 phcent.com
- *-------------------------------------------------------------------------n*
- * @since      shopwwi象讯·PHP商城系统Pro
- *-------------------------------------------------------------------------t*
+ *-------------------------------------------------------------------------p*
+ * @link       http://www.shopwwi.com 
+ *-------------------------------------------------------------------------w*
+ * @since      shopwwi
+ *-------------------------------------------------------------------------w*
  */
 
 namespace Shopwwi\WebmanAuth;
@@ -124,27 +124,27 @@ class Auth
     {
         try {
             if(is_array($data)) {
-                $user = $this->getUserClass();
-                if($user == null) throw new JwtTokenException('模型不存在',400);
+                list($model,$orm) = $this->getUserClass();
+                if($model == null) throw new JwtTokenException('模型不存在',400);
                 foreach ($data as $key=>$val){
                     if($key !== 'password'){
-                        $user = $user->where($key,$val);
+                        $model = $model->where($key,$val);
                     }
                 }
 
-                if($this->isThinkOrm()){
-                    $user = $user->find();
+                if($orm == 'thinkphp'){
+                    $model = $model->find();
                 }else{
-                    $user = $user->first();
+                    $model = $model->first();
                 }
 
-                if($user != null){
+                if($model != null){
                     if(isset($data['password'])){
-                        if(!password_verify($data['password'],$user->password)){
+                        if(!password_verify($data['password'],$model->password)){
                             throw new JwtTokenException('密码错误',400);
                         }
                     }
-                    return  $this->login($user);
+                    return  $this->login($model);
                 }
                 throw new JwtTokenException('账号或密码错误',400);
             }
@@ -163,10 +163,17 @@ class Auth
      */
     protected function getUserClass(){
         $guardConfig = $this->config['guard'][$this->guard]['model'];
+        $orm = 'laravel';
+        $class = null;
         if(!empty($guardConfig)){
-            return new $guardConfig;
+            if(is_array($guardConfig)){
+                $orm = $guardConfig[1];
+                $class = $guardConfig[0];
+            }else{
+                $class = $guardConfig;
+            }
         }
-        return null;
+        return [new $class,$orm];
     }
 
     /**
@@ -182,11 +189,11 @@ class Auth
                 if($cache){
                     return $extend->extend;
                 }else{
-                    $user = $this->getUserClass();
-                    if($this->isThinkOrm()){
-                        return $user->where($key,$extend->extend->$key)->find();
+                    list($model,$orm) = $this->getUserClass();
+                    if($orm == 'thinkphp'){
+                        return $model->where($key,$extend->extend->$key)->find();
                     }else{
-                        return $user->where($key,$extend->extend->$key)->first();
+                        return $model->where($key,$extend->extend->$key)->first();
                     }
                 }
 

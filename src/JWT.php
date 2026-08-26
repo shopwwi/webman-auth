@@ -1,16 +1,16 @@
 <?php
 /**
- *-------------------------------------------------------------------------p*
+ *-------------------------------------------------------------------------s*
  *
  *-------------------------------------------------------------------------h*
- * @copyright  Copyright (c) 2015-2022 Shopwwi Inc. (http://www.shopwwi.com)
- *-------------------------------------------------------------------------c*
+ * @copyright  Copyright (c) 2015-2099 Shopwwi Inc. (http://www.shopwwi.com)
+ *-------------------------------------------------------------------------o*
  * @license    http://www.shopwwi.com        s h o p w w i . c o m
- *-------------------------------------------------------------------------e*
- * @link       http://www.shopwwi.com by 象讯科技 phcent.com
- *-------------------------------------------------------------------------n*
- * @since      shopwwi象讯·PHP商城系统Pro
- *-------------------------------------------------------------------------t*
+ *-------------------------------------------------------------------------p*
+ * @link       http://www.shopwwi.com 
+ *-------------------------------------------------------------------------w*
+ * @since      shopwwi
+ *-------------------------------------------------------------------------w*
  */
 
 
@@ -162,7 +162,7 @@ class JWT
      * @return object
      * @throws JwtTokenException
      */
-    public function verify(string $token = null, int $tokenType = self::ACCESS): ?object
+    public function verify(?string $token = null, int $tokenType = self::ACCESS): ?object
     {
         $token = $token ?? $this->getTokenFormHeader();
         return $this->verifyToken($token, $tokenType);
@@ -212,7 +212,7 @@ class JWT
      * @return object
      * @throws JwtTokenException
      */
-    public function getTokenExtend(string $token = null, int $tokenType = self::ACCESS): ?object
+    public function getTokenExtend(?string $token = null, int $tokenType = self::ACCESS): ?object
     {
         return $this->verify($token, $tokenType);
     }
