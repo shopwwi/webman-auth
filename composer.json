@@ -1,10 +1,7 @@
 {
-  "name": "jzh/webman-auth",
+  "name": "shopwwi/webman-auth",
   "description": "webman auth",
-  "keywords": [
-    "webman",
-    "auth"
-  ],
+  "keywords": ["webman", "auth"],
   "type": "library",
   "require": {
     "php": ">=7.2",
