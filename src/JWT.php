@@ -450,10 +450,14 @@ class JWT
             $tokenList = unserialize($list);
             $checkToken = false;
             $expireToken = false;
+            $changed = false;
+            // 多 worker 下会基于过时快照覆盖并发登录写入（刚登录就失效）。
+            // 仅当列表实际变化（REFRESH 分支删除了条目）才回写；ACCESS 校验只读不写。
             foreach ($tokenList as $key => $val) {
                 if ($tokenType == self::REFRESH && $val['refreshToken'] == $token) {
                     if (\bcadd($val['refreshTime'], $val['refreshExp'], 0) < time()) {
                         unset($tokenList[$key]);
+                        $changed = true;
                     } else {
                         $checkToken = true;
                     }
@@ -466,10 +470,12 @@ class JWT
                     }
                 }
             }
-            if (count($tokenList) == 0) {
-                Redis::hDel("{$this->redis_prefix}token_{$this->guard}", $id);
-            } else {
-                Redis::hSet("{$this->redis_prefix}token_{$this->guard}", $id, serialize($tokenList));
+            if ($changed) {
+                if (count($tokenList) == 0) {
+                    Redis::hDel("{$this->redis_prefix}token_{$this->guard}", $id);
+                } else {
+                    Redis::hSet("{$this->redis_prefix}token_{$this->guard}", $id, serialize($tokenList));
+                }
             }
             if (!$checkToken) {
                 if ($expireToken) {
